@@ -259,8 +259,122 @@ def clickSaveMsgBtn(self):
     file.close()
 
 
-def checkBoxClicked():
-    pass
+def clickSaveKeysToServer(self):
+    global keys
+    global resultKeysBox
+    textInResultKeysBox = resultKeysBox.get("1.0", tk.END)
+    if len(resultKeysBox.get("1.0", tk.END)) > 1:
+        keySelectWindow = tk.Toplevel()
+        keySelectWindow.title("Select keys to save to the server")
+        keySelectWindow.geometry("480x480")
+        keySelectWindow.resizable(0, 0)
+        keySelectWindow["bg"]="#262626"
+        global serverSelectedKeys
+        serverSelectedKeys = []
+        keyNum = 0
+        style = ttk.Style()
+        style.configure("TCheckbutton", foreground="#ffffff", background="#262626", font=("Arial", 14))
+        for key in keys:
+            btnText = "Key #" + str(keyNum+1)
+            col = keyNum % 3
+            row = keyNum // 3
+            serverSelectedKeys.append(tk.BooleanVar())
+            ttk.Checkbutton(keySelectWindow, text=btnText,
+                            variable=serverSelectedKeys[keyNum]).place(x=col*160+24, y=row*48+8)
+            keyNum += 1
+        okayBtnImg = tk.PhotoImage(file = r"GUIimages/saveKeysToServerBlue.ppm")
+        okayBtn = tk.Label(keySelectWindow, width=260, height=36, image=okayBtnImg,
+                           bd=-2, bg="#262626")
+        okayBtn.bind("<Button-1>", func=lambda e: getLoginInfo(keySelectWindow))
+        okayBtnHoverImg = tk.PhotoImage(file = r"GUIimages/saveKeysToServerBlueHover.ppm")
+        okayBtn.bind("<Enter>", func=lambda e: okayBtn.config(image=okayBtnHoverImg))
+        okayBtn.bind("<Leave>", func=lambda e: okayBtn.config(image=okayBtnImg))
+        okayBtn.place(x=112, y=432)
+        keySelectWindow.mainloop()
+    else:
+        messagebox.showerror("Error", "Keys must be generated before they can be saved.")
+
+
+def getLoginInfo(keySelectWindow):
+    keySelectWindow.destroy()
+    global serverSelectedKeys
+    numKeysSelected = 0
+    for selectedKey in serverSelectedKeys:
+        if selectedKey.get():
+            numKeysSelected += 1
+    if numKeysSelected < 1:
+        messagebox.showerror("Error", "Select at least one key to save.")
+        return
+    global reqNumKeys
+    if numKeysSelected >= reqNumKeys.get():
+        messagebox.showerror("Error", "For security reasons, the number of keys uploaded to the server must be less than the number of keys needed to recreate the message.")
+    loginWindow = tk.Toplevel()
+    loginWindow.title("Login to the server")
+    loginWindow.geometry("320x320")
+    loginWindow.resizable(0, 0)
+    loginWindow["bg"]="#262626"
+    userLbl = tk.Label(loginWindow, text="Username: ", font=("Arial", 16), fg="#ffffff", bg="#262626", bd=-2)
+    userLbl.place(x=24, y=32)
+    username = tk.Entry(loginWindow, font=("Arial", 14), width = 14, bg="#ffffff", fg="#000000")
+    username.place(x=136, y=35)
+    global saveUser
+    saveUser = tk.BooleanVar()
+    style = 
+    saveUser = ttk.Checkbutton(loginWindow, text="Save username", variable=saveUser).place(x=116, y=68)
+    pwLbl = tk.Label(loginWindow, text="Password: ", font=("Arial", 16), fg="#ffffff", bg="#262626", bd=-2)
+    pwLbl.place(x=24, y=124)
+    password = tk.Entry(loginWindow, font=("Arial", 14), show="*", width = 14, bg="#ffffff", fg="#000000")
+    password.place(x=136, y=125)
+    loginBtnImg = tk.PhotoImage(file = r"GUIimages/loginBtn.ppm")
+    loginBtn = tk.Label(loginWindow, image=loginBtnImg, bd=-2, bg="#262626", width=60, height=28)
+    loginBtn.place(x=130,y=276)
+    loginBtn.bind("<Button-1>", func=lambda e: login(username.get(), password.get()))
+    loginBtnHoverImg = tk.PhotoImage(file = r"GUIimages/loginBtnHover.ppm")
+    loginBtn.bind("<Enter>", func=lambda e: loginBtn.config(image=loginBtnHoverImg))
+    loginBtn.bind("<Leave>", func=lambda e: loginBtn.config(image=loginBtnImg))
+    
+
+def login(username, password):
+    print(username)
+    print(password)
+    
+
+def saveKeysToServer(socket):
+    global keySelectWindow
+    keySelectWindow.destroy()
+    global serverSelectedKeys
+    numKeysSelected = 0
+    for selectedKey in serverSelectedKeys:
+        if selectedKey.get():
+            numKeysSelected += 1
+    if numKeysSelected < 1:
+        messagebox.showerror("Error", "Select at least one key to save.")
+        return
+    global keys
+    directory = filedialog.askdirectory()
+    j = 0
+    isConflictingFileName = True
+    while isConflictingFileName:
+        isConflictingFileName = False
+        if j > 0:
+            endOfFileName = " (" + str(j) + ").txt"
+        else:
+            endOfFileName = ".txt"
+        for i in range(len(keys)):
+            fileName = "key" + str(i+1) + endOfFileName
+            filePath = directory + "/" + fileName
+            if os.path.isfile(filePath):
+                isConflictingFileName = True
+                break
+        j += 1
+    k = 1
+    for key in keys:
+        if selectedKeys[k-1].get():
+            fileName = directory + "/key" + str(k) + endOfFileName
+            file = open(fileName,"w")
+            file.write(key)
+            file.close()
+        k += 1
 
 
 def selectAllKeys(self):
@@ -274,15 +388,13 @@ def clickSaveBtn(self):
     global keys
     global resultKeysBox
     textInResultKeysBox = resultKeysBox.get("1.0", tk.END)
-    print(textInResultKeysBox)
-    print(str(len(textInResultKeysBox)))
     if len(resultKeysBox.get("1.0", tk.END)) > 1:
+        global keySelectWindow
         keySelectWindow = tk.Toplevel()
-        keySelectWindow.title("Select keys to save")
+        keySelectWindow.title("Select keys to save to text files")
         keySelectWindow.geometry("480x480")
         keySelectWindow.resizable(0, 0)
         keySelectWindow["bg"]="#262626"
-        btnImg = tk.PhotoImage(file = r"GUIimages/keyBtn.ppm")
         global selectedKeys
         selectedKeys = []
         keyNum = 0
@@ -295,8 +407,6 @@ def clickSaveBtn(self):
             selectedKeys.append(tk.BooleanVar())
             ttk.Checkbutton(keySelectWindow, text=btnText,
                             variable=selectedKeys[keyNum]).place(x=col*160+24, y=row*48+8)
-            print(keyNum)
-            print(selectedKeys[keyNum].get())
             keyNum += 1
         selectAllBtnImg = tk.PhotoImage(file = r"GUIimages/selectAllKeys.ppm")
         selectAllBtn = tk.Label(keySelectWindow, width=260, height=36, image=selectAllBtnImg,
@@ -320,6 +430,8 @@ def clickSaveBtn(self):
 
 
 def saveKeys(self):
+    global keySelectWindow
+    keySelectWindow.destroy()
     global selectedKeys
     isAtLeastOneKeySelected = False
     for selectedKey in selectedKeys:
@@ -507,11 +619,19 @@ def clickGenBtnSelected(self):
 
     saveBtnImg = tk.PhotoImage(file = r"GUIimages/saveBtn.ppm")
     saveBtn = tk.Label(f, width=388, height=36, image=saveBtnImg, bd=-2, bg="#262626")
-    saveBtn.place(x=317, y=592)
+    saveBtn.place(x=92, y=592)
     saveBtn.bind("<Button-1>", clickSaveBtn)
     saveBtnHoverImg = tk.PhotoImage(file = r"GUIimages/saveBtnHover.ppm")
     saveBtn.bind("<Enter>", func=lambda e: saveBtn.config(image=saveBtnHoverImg))
-    saveBtn.bind("<Leave>", func=lambda e: saveBtn.config(image=saveBtnImg))    
+    saveBtn.bind("<Leave>", func=lambda e: saveBtn.config(image=saveBtnImg))
+
+    serverSaveBtnImg = tk.PhotoImage(file = r"GUIimages/saveKeysToServer.ppm")
+    serverSaveBtn = tk.Label(f, width=388, height=36, image=serverSaveBtnImg, bd=-2, bg="#262626")
+    serverSaveBtn.place(x=544, y=592)
+    serverSaveBtn.bind("<Button-1>", clickSaveKeysToServer)
+    serverSaveBtnHoverImg = tk.PhotoImage(file = r"GUIimages/saveKeysToServerHover.ppm")
+    serverSaveBtn.bind("<Enter>", func=lambda e: serverSaveBtn.config(image=serverSaveBtnHoverImg))
+    serverSaveBtn.bind("<Leave>", func=lambda e: serverSaveBtn.config(image=serverSaveBtnImg))
     
     r.mainloop()
 
