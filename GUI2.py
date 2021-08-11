@@ -749,24 +749,31 @@ def saveKeysToServer(keySelectWindow, serverSelectedKeys, password):
     sendMsgToServer("save")
     j = 0
     for key in keys:
-        if selectedKeys[j].get():
-            sendMsgToServer(str(j))
-            subKeys = key.split(" ")
-            sendMsgToServer(subKeys[0])
+        if serverSelectedKeys[j].get():
+            sendMsgToServer("startkey")
             i = 0
-            for subKey in subKeys[1:]:
-                encryptedSubKey = subKey[0]
-                for s in subKey[1:]:
-                    if i == len(password):
-                        i = 0
-                    p = ord(password[i]) - ord("!")
-                    k = ord(s) - ord("!")
-                    e = (k + p) % 94
-                    c = chr(e + ord("!"))
-                    encryptedSubKey += c
-                    i += 1
-                sendMsgToServer(encryptedSubKey)
-            sendMsgToServer("end")
+            # encrypt key
+            encryptedKey = ""
+            for s in key:
+                if i == len(password):
+                    i = 0
+                p = ord(password[i]) - ord("!")
+                k = ord(s) - ord("!")
+                e = (k + p) % 94
+                c = chr(e + ord("!"))
+                encryptedKey += c
+                i += 1
+            numSends = len(encryptedKey) // 256 + 1
+            start = 0
+            for n in numSends:
+                if start + 255 > len(encryptedKey):
+                    keyPacket = encryptedKey[start:]
+                else:
+                    end = start + 255
+                    keyPacket = encryptedKey[start:end]
+                    start += 256
+                sendMsgToServer(keyPacket)
+            sendMsgToServer("endkey")
         j += 1
     sendMsgToServer("endall")
     if recvMsgFromServer() != "success":
