@@ -27,7 +27,7 @@ def recvMsgFromServer():
     import rsa
     global clientPrivateKey, s
     try:
-        data = s.recv(2048)
+        data = s.recv(1024)
     except:
         messagebox.showerror("Error", "Failed to communicate with the server.")
         return ""
@@ -49,7 +49,7 @@ def establishServerConnection():
         s.connect(("31.220.51.32", 51515))
 
         # Receive server public RSA key from server
-        data = s.recv(4096).decode("ascii")
+        data = s.recv(1024).decode("ascii")
         serverPublicKeyN = int(data.split(",")[0])
         serverPublicKeyE = int(data.split(",")[1])
         serverPublicKey = rsa.PublicKey(serverPublicKeyN,serverPublicKeyE)
@@ -57,13 +57,13 @@ def establishServerConnection():
 
         # Send client public RSA key to server
         global clientPublicKey, clientPrivateKey
-        clientPublicKey, clientPrivateKey = rsa.newkeys(2048)
+        clientPublicKey, clientPrivateKey = rsa.newkeys(512)
         msgToServer = str(clientPublicKey["n"]) + "," + str(clientPublicKey["e"])
         print("Client public key: " + msgToServer)
         s.send(msgToServer.encode("ascii"))
 
         # check to ensure key exchange was valid
-        data = s.recv(2048)
+        data = s.recv(1024)
         decodedData = rsa.decrypt(data, clientPrivateKey)
         decodedData = decodedData.decode("ascii")
         print(decodedData)
