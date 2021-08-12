@@ -9,6 +9,7 @@ from tkinter import filedialog
 from clientsideServerFunctions import *
 from encoder import *
 from decoder import *
+from time import sleep
 
 # Creates the GUI window in combine mode
 def clickCombBtnSelected(f, r):
@@ -547,9 +548,6 @@ def closeServer(window):
 def getLoginInfo(resultKeysBox):
     if len(resultKeysBox.get("1.0", tk.END)) > 1:
         global keys
-        if any(len(key) > 250 for key in keys):
-            messagebox.showerror("Error", "The message has a word that is too long to be " +
-                                 "properly saved to the server.")
         # includes for connecting to the server. Not required if server functionality is not used
         # so these includes are not included until the "save keys to server" button is clicked
         loginWindow = tk.Toplevel()
@@ -608,7 +606,7 @@ def createAccount(username, password):
         messagebox.showerror("Error", "The password is too short. " +
                              "The minimum length is 8 characters.")
         return
-    if not all(" " < char <= "~" for char in password):
+    if not all("0" <= char <= "9" or "a" <= char <= "z" or "A" <= char <= "Z" for char in username):
         messagebox.showerror("Error", "The username can only contain standard ASCII " +
                                 "letters, numbers and symbols without any spaces.")
         return
@@ -624,7 +622,7 @@ def createAccount(username, password):
         messagebox.showerror("Error", "The password must contain at least 1 symbol, 1 number, " +
                              "1 lowercase letter and 1 uppercase letter.")
         return
-    if establishServerConnection:
+    if establishServerConnection():
         # salt and hash password before sending to the server
         salt = os.urandom(32)
         hashedPassword = hashlib.pbkdf2_hmac("sha256", password.encode("ascii"), salt, 100000)
@@ -632,17 +630,19 @@ def createAccount(username, password):
         print(salt)
         print("hashedPassword")
         print(hashedPassword)
+        sleep(1)
+        print("send create msg")
         sendMsgToServer("create")
         sendMsgToServer(username)
-        sendMsgToServer(salt)
-        sendMsgToServer(hashedPassword)
         serverMsg = recvMsgFromServer()
-        if serverMsg == "created":
-            selectKeys(resultKeysBox, password)
-        elif serverMsg == "exists":
+        if serverMsg == "exists":
             messagebox.showerror("Error", "An account with that username already exists.")
-        else:
-            messagebox.showerror("Error", "Failed to create an account.")
+            return
+        if serverMsg == "new":
+            print("new account")
+            sendBytesToServer(hashedPassword)
+            print("Sent hashed password to server")
+            print(recvMsgFromServer())
             
 
 # function to handle logging into the server
@@ -669,11 +669,11 @@ def login(username, password, loginWindowl, resultKeysBox):
     print(salt)
     print("hashedPassword")
     print(hashedPassword)
+    sleep(2)
     # establish connection to the server
     if establishServerConnection():
         sendMsgToServer("login")
         sendMsgToServer(username)
-        sendBytesToServer(salt)
         sendBytesToServer(hashedPassword)
         serverMsg = recvMsgFromServer()
         if serverMsg == "success":
@@ -750,7 +750,7 @@ def saveKeysToServer(keySelectWindow, serverSelectedKeys, password):
     j = 0
     for key in keys:
         if serverSelectedKeys[j].get():
-            sendMsgToServer("startkey")
+            sendMsgToServer("Key#" + str(j))
             i = 0
             # encrypt key
             encryptedKey = ""
@@ -763,13 +763,13 @@ def saveKeysToServer(keySelectWindow, serverSelectedKeys, password):
                 c = chr(e + ord("!"))
                 encryptedKey += c
                 i += 1
-            numSends = len(encryptedKey) // 256 + 1
+            numSends = (len(encryptedKey) // 257) + 1
             start = 0
             for n in numSends:
-                if start + 255 > len(encryptedKey):
+                end = start + 255
+                if end >= len(encryptedKey):
                     keyPacket = encryptedKey[start:]
                 else:
-                    end = start + 255
                     keyPacket = encryptedKey[start:end]
                     start += 256
                 sendMsgToServer(keyPacket)

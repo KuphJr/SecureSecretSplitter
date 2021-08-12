@@ -17,8 +17,9 @@ def sendMsgToServer(msg):
     global serverPublicKey, s
     try:
         s.send(rsa.encrypt(msg.encode("ascii"), serverPublicKey))
-    except:
-        messagebox.showerror("Error", "Failed to communicate with the server.")
+    except Exception as e:
+        print(e)
+        #messagebox.showerror("Error", "Failed to communicate with the server.")
 
 
 # function to decrypt a string received from the server with RSA
@@ -31,6 +32,7 @@ def recvMsgFromServer():
     except:
         messagebox.showerror("Error", "Failed to communicate with the server.")
         return ""
+    print("Received from server: " + rsa.decrypt(data, clientPrivateKey).decode("ascii"))
     return rsa.decrypt(data, clientPrivateKey).decode("ascii")
 
 # function to establish a socket with the server
@@ -45,9 +47,10 @@ def establishServerConnection():
     except:
         pass
     try:
+        print("trying to connect")
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(("31.220.51.32", 51515))
-
+        print("connected")
         # Receive server public RSA key from server
         data = s.recv(1024).decode("ascii")
         serverPublicKeyN = int(data.split(",")[0])
@@ -67,13 +70,13 @@ def establishServerConnection():
         decodedData = rsa.decrypt(data, clientPrivateKey)
         decodedData = decodedData.decode("ascii")
         print(decodedData)
-        if decodedData != "hi":
+        if decodedData != "test message from server":
             return False
         # send test message to server
-        msgToServer = "hello"
+        msgToServer = "test message from client"
         msgToServer = msgToServer.encode("ascii")
         s.send(rsa.encrypt(msgToServer, serverPublicKey))
     except:
-        messagebox.showerror("Error", "Failed to connect to the server.")
+        messagebox.showerror("Error", "Failed to establish connection.")
         return False
     return True
