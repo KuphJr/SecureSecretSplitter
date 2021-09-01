@@ -260,6 +260,7 @@ def clickSaveMsgBtn(self):
 
 # function to save keys to text files 
 def clickSaveBtn(self):
+    global keys
     directory = filedialog.askdirectory()
     j = 0
     isConflictingFileName = True
@@ -315,6 +316,7 @@ def clickGenBtn(self):
         msgBox.insert(tk.INSERT, message)
         global includeSymbols
         # generate keys and place keys in the result scrolling textbox
+        global keys
         if includeSymbols:
             keys = splitKeyCreator(94, reqNumKeys.get(), totalNumKeys.get(), message)
         else:
